@@ -1,0 +1,69 @@
+The 3Com EtherLink II (model 3C503) 
+I/O base 0x300 and IRQ 5 is well-supported in Interactive UNIX System V/386 Release 4.1.1, using the ie (Intelligent Ethernet) driver—despite the card being from 3Com, not Intel.
+
+Note: In ISC UNIX (and SVR3.2), the ie driver supports several 8/16-bit ISA Ethernet cards that use a NE1000/NE2000-compatible register interface, including the 3C503. This is historical naming—don’t let “ie” (often associated with Intel) confuse you.
+
+Step-by-Step Setup for 3C503 in Interactive UNIX 4.1.1
+1. Confirm Hardware Settings
+Your card is likely configured as:
+
+I/O Base: 0x300 → matches 3c0 in your note
+IRQ: 5 → matches 5 in 3c05
+Transceiver: AUI (default) or BNC—ensure correct cabling
+The 3C503 uses jumpers or a configuration utility (3C503CFG.EXE in DOS) to set base/IRQ. Verify with a DOS boot floppy if unsure.
+
+2. Enable the ie Driver in the Kernel
+Interactive UNIX requires explicit driver binding via idtune.
+
+Run as root: 			/etc/conf/bin/idtune ie 0x300 5
+
+First argument: I/O base address in hex (0x300)
+Second argument: IRQ number (5)
+This writes the configuration to the kernel symbol table.
+
+3. Rebuild the Kernel
+
+/etc/conf/bin/idbuild -B
+
+The -B flag builds and installs the new kernel (/unix).
+Reboot is required afterward.
+4. Configure Networking
+Edit /etc/netconfig: (Important: No spaces around = in /etc/netconfig.)
+
+hostname=yourhost
+ipaddr=192.168.1.10
+netmask=255.255.255.0
+gateway=192.168.1.1
+
+Add to /etc/hosts:
+
+127.0.0.1       localhost
+192.168.1.10    yourhost
+
+5. Reboot sync; reboot
+
+6. Verify After Reboot
+Check if the driver loaded:	dmesg | grep ie
+
+You should see something like:	ie0: 3c503 at 0x300, irq 5
+
+Check interface status:		netstat -i
+
+Output should include ie0 with your IP.
+Test connectivity:		ping 192.168.1.1
+
+Common Pitfalls
+A. “Device not found” or no ie0 in netstat -i
+Cause: Incorrect I/O/IRQ, or card not seated.
+Fix: Double-check jumper settings. Try 0x280 or 0x330 if unsure—0x300 is standard, but not universal.
+B. Network works but no DNS
+Expected: ISC UNIX 4.1.1 has no DNS resolver.
+Workaround: Use /etc/hosts for all name resolution.
+C. “Network is unreachable”
+Ensure gateway is set in /etc/netconfig.
+Confirm physical layer: 3C503 often requires AUI-to-BNC transceiver for coax, or AUI-to-RJ45 for twisted pair.
+
+Final Notes
+The 3C503 is a period-correct, fully supported card for ISC UNIX 4.1.1.
+You do not need ifconfig—networking is fully functional via static config.
+Once set up, you can use rcp, rlogin, telnet, and ftp (if installed).
