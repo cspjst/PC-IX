@@ -4,11 +4,11 @@ Interactive UNIX information, files, info and setup guides.
 PC/IX 4.x
 Interactive UNIX, also known as PC/IX, and 386/ix were UNIX derivitives created for the IBM PC in the early 1980's. PC/IX was the first UNIX sold directly from IBM, but not the first UNIX sold for the IBM PC. (Venix/86 was the first.) The original PC/IX software sold was on 19 floppy disks and sold for 900 dollars. In 1985, 386/ix was introduced, later named Interactive UNIX. The last version released was 4.1.1 in July 1998 and was supported up until 2006.
 
-# Vintage UNIX Toolchain Bootstrap for ISC UNIX 4.1.1
+# Vintage UNIX Toolchain Bootstrap for SCO Interactive UNIX 4.1.1
 
    This document outlines the minimal, verified sequence to bootstrap a working GNU development environment on **Interactive UNIX 4.1.1** (SVR4, i386) using only the native `/bin/cc` and no preexisting GNU tools.
 
-   The goal: **compile XFree86 3.3.6** on real hardware (`immortis.smc.local`) using period-correct tool versions that actually build on this platform.
+   The goal: **compile XFree86 3.3.6** on real hardware using period-correct tool versions that actually build on this platform.
 
    ---
 
@@ -26,7 +26,7 @@ Interactive UNIX, also known as PC/IX, and 386/ix were UNIX derivitives created 
 
    - **Build method**: Manual compile + link (no `ar`/`ranlib`). **see notes section below**
 
-   - Use local `make-3.75` to remake `make-3.75` and install it. 
+   - **Validate** use local `make-3.75` to remake `make-3.75` and install it. 
 
      ```bash
      make
@@ -36,7 +36,13 @@ Interactive UNIX, also known as PC/IX, and 386/ix were UNIX derivitives created 
      make install
      ```
 
-     Now that you have a working `/usr/local/bin/make`, rebuild `make-3.75` the standard way—no `build.sh` or patches needed. Unpack a clean source tree, run `sh configure --prefix=/usr/local`, then `make && make install`. The `configure` script detects ISC’s native `fnmatch()`, skips building `fnmatch.c`, avoids `libglob.a` entirely, and produces a clean Makefile. The new `make` handles the rest—no `ranlib`, no manual linking, no surprises.
+     + Now that you have a working `/usr/local/bin/make`, rebuild `make-3.75` the standard way—no `build.sh` or patches needed.
+     
+     + Unpack a clean source tree, run `sh configure --prefix=/usr/local`, then `make && make install`.
+     
+     + The `configure` script detects ISC’s native `fnmatch()`, skips building `fnmatch.c`, avoids `libglob.a` entirely, and produces a clean Makefile.
+       
+     + The new `make` handles the rest—no `ranlib`, no manual linking, no surprises.
 
    ### 2. [`m4-1.4o`](https://ftp.gnu.org/gnu/m4/m4-1.4.tar.gz)
 
