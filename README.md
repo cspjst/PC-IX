@@ -4,80 +4,93 @@ Interactive UNIX information, files, info and setup guides.
 PC/IX 4.x
 Interactive UNIX, also known as PC/IX, and 386/ix were UNIX derivitives created for the IBM PC in the early 1980's. PC/IX was the first UNIX sold directly from IBM, but not the first UNIX sold for the IBM PC. (Venix/86 was the first.) The original PC/IX software sold was on 19 floppy disks and sold for 900 dollars. In 1985, 386/ix was introduced, later named Interactive UNIX. The last version released was 4.1.1 in July 1998 and was supported up until 2006.
 
-# Vintage UNIX Toolchain Bootstrap for SCO Interactive UNIX 4.1.1
+Vintage UNIX Toolchain Bootstrap for ISC UNIX 4.1.1
 
-   This document outlines the minimal, verified sequence to bootstrap a working GNU development environment on **Interactive UNIX 4.1.1** (SVR4, i386) using only the native `/bin/cc` and no preexisting GNU tools.
+This document outlines the minimal, verified sequence to bootstrap a working GNU development environment on **Interactive UNIX 4.1.1** (SVR4, i386) using only the native `/bin/cc` and no preexisting GNU tools.
 
-   The goal: **compile XFree86 3.3.6** on real hardware using period-correct tool versions that actually build on this platform.
+The goal: **compile XFree86 3.3.6** on real hardware (`immortis.smc.local`) using period-correct tool versions that actually build on this platform.
 
-   ---
+---
 
-   ## Build Order
+## Build Order
 
-   Each step depends on the previous. All versions are chosen specifically for **K&R/ANSI C compatibility**, lack of Autoconf/glibc, and historical use with XFree86.
+Each step depends on the previous. All versions are chosen specifically for **K&R/ANSI C compatibility**, lack of Autoconf/glibc, and historical use with XFree86.
 
-   ### 1. [`make-3.75`](https://ftp.gnu.org/gnu/make/make-3.75.tar.gz)
+### 1. [`make-3.75`](https://ftp.gnu.org/gnu/make/make-3.75.tar.gz)
 
-   #### https://ftp.gnu.org/gnu/make/make-3.75.tar.gz
+#### https://ftp.gnu.org/gnu/make/make-3.75.tar.gz
 
-   - **Why**: ISC’s native `make` is too primitive for GNU software.  
+- **Why**: ISC’s native `make` is too primitive for GNU software.  
 
-   - **Special note**: This is the **last GNU Make release with `build.sh`**, designed explicitly for bootstrapping without an existing `make`.  
+- **Special note**: This is the **last GNU Make release with `build.sh`**, designed explicitly for bootstrapping without an existing `make`.  
 
-   - **Build method**: Manual compile + link (no `ar`/`ranlib`). **see notes section below**
+- **Build method**: Manual compile + link (no `ar`/`ranlib`). **see notes section below**
 
-   - **Validate** use local `make-3.75` to remake `make-3.75` and install it. 
+- Use local `make-3.75` to remake `make-3.75` and install it. 
 
-     ```bash
-     make
-     cd /downloads/make-3.75
-     sh configure --prefix=/usr/local
-     make
-     make install
-     ```
+  ```bash
+  # Now have a working make, rebuild make-3.75 the standard way - no build.sh or patches needed. 
+  # Unpack a clean source tree and...
+  cd /downloads/make-3.75
+  # configure detects ISC’s native fnmatch(), skips building fnmatch.c, avoids libglob.a entirely, and produces a clean Makefile.
+  ./configure --prefix=/usr/local
+  # The new `make` handles the rest—no `ranlib`, no manual linking, no surprises.
+  make
+  make install	# into /usr/local 
+  # Add to the path
+  PATH=/usr/local/bin:$PATH
+  export PATH
+  ```
 
-     + Now that you have a working `/usr/local/bin/make`, rebuild `make-3.75` the standard way—no `build.sh` or patches needed.
-     
-     + Unpack a clean source tree, run `sh configure --prefix=/usr/local`, then `make && make install`.
-     
-     + The `configure` script detects ISC’s native `fnmatch()`, skips building `fnmatch.c`, avoids `libglob.a` entirely, and produces a clean Makefile.
-       
-     + The new `make` handles the rest—no `ranlib`, no manual linking, no surprises.
+#### N.B. Purpose of /usr/local in Unix
 
-   ### 2. [`m4-1.4o`](https://ftp.gnu.org/gnu/m4/m4-1.4.tar.gz)
+The `/usr/local` directory is used for software and files that are installed locally by the system administrator. 
 
-   #### https://ftp.gnu.org/gnu/m4/m4-1.4.tar.gz
+| Attribute  | /usr                      | /usr/local                 |
+| :--------- | :------------------------ | :------------------------- |
+| Managed by | System package manager    | Local administrator        |
+| Purpose    | System distribution files | Locally installed software |
+| Upgrades   | May be overwritten        | Typically preserved        |
 
-   - **Why**: Required by `bison` to generate parser code.  
-   - **Special note**: Later versions depend on Autoconf; 1.4o builds with just `make` and `cc`.
+This structure helps maintain a clean separation between system-managed and user-managed files, enhancing system stability and organization.
 
-   ### 3. [`bison-1.25`](https://ftp.gnu.org/gnu/bison/bison-1.25.tar.gz)
 
-   #### https://ftp.gnu.org/gnu/bison/bison-1.25.tar.gz
 
-   - **Why**: Replaces ISC’s ancient `yacc`; needed to build GCC and XFree86 parsers.  
-   - **Special note**: 1.25 is the last version before C99 dependencies crept in.
+### 2. [`m4-1.4o`](https://ftp.gnu.org/gnu/m4/m4-1.4.tar.gz)
 
-   ### 4. [`flex-2.5.39`](https://github.com/westes/flex/archive/refs/tags/flex-2.5.39.tar.gz)
+#### https://ftp.gnu.org/gnu/m4/m4-1.4.tar.gz
 
-   #### https://github.com/westes/flex/archive/refs/tags/flex-2.5.39.tar.gz
+- **Why**: Required by `bison` to generate parser code.  
+- **Special note**: Later versions depend on Autoconf; 1.4o builds with just `make` and `cc`.
 
-   - **Why**: Modern `lex` replacement; used by XFree86’s `imake` and some GCC components.  
-   - **Clarification**: `2.5.39` is Debian’s package name for upstream **`2.5.4a`** (1996). This version avoids C99 and builds cleanly with `-Xp`.
+### 3. [`bison-1.25`](https://ftp.gnu.org/gnu/bison/bison-1.25.tar.gz)
 
-   ### 5. [`gcc-2.8.1`](https://ftp.gnu.org/gnu/gcc/gcc-2.8.1.tar.gz)
+#### https://ftp.gnu.org/gnu/bison/bison-1.25.tar.gz
 
-   #### https://ftp.gnu.org/gnu/gcc/gcc-2.8.1.tar.gz
+- **Why**: Replaces ISC’s ancient `yacc`; needed to build GCC and XFree86 parsers.  
+- **Special note**: 1.25 is the last version before C99 dependencies crept in.
 
-   - **Why**: First GCC version with full SVR4 support and known to work on ISC UNIX 4.1.1.  
-   - **Special note**: Does **not** use Autoconf; uses a simple `configure` shell script. Matches XFree86 3.3.x requirements.
+### 4. [`flex-2.5.39`](https://github.com/westes/flex/archive/refs/tags/flex-2.5.39.tar.gz)
 
-   ### 6. [`XFree86-3.3.6`](http://ftp.xfree86.org/pub/XFree86/3.3.6/source/)
+#### https://github.com/westes/flex/archive/refs/tags/flex-2.5.39.tar.gz
 
-   #### http://ftp.xfree86.org/pub/XFree86/3.3.6/source/
+- **Why**: Modern `lex` replacement; used by XFree86’s `imake` and some GCC components.  
+- **Clarification**: `2.5.39` is Debian’s package name for upstream **`2.5.4a`** (1996). This version avoids C99 and builds cleanly with `-Xp`.
 
-   - **Why**: Final goal — a working graphical desktop on vintage ISC UNIX.  
-   - **Special note**: This version was **explicitly ported** to SVR4 systems like ISC and SCO. It uses `Imake`, not Autoconf, and expects GCC 2.7–2.8.
+### 5. [`gcc-2.8.1`](https://ftp.gnu.org/gnu/gcc/gcc-2.8.1.tar.gz)
+
+#### https://ftp.gnu.org/gnu/gcc/gcc-2.8.1.tar.gz
+
+- **Why**: First GCC version with full SVR4 support and known to work on ISC UNIX 4.1.1.  
+- **Special note**: Does **not** use Autoconf; uses a simple `configure` shell script. Matches XFree86 3.3.x requirements.
+
+### 6. [`XFree86-3.3.6`](http://ftp.xfree86.org/pub/XFree86/3.3.6/source/)
+
+#### http://ftp.xfree86.org/pub/XFree86/3.3.6/source/
+
+- **Why**: Final goal — a working graphical desktop on vintage ISC UNIX.  
+- **Special note**: This version was **explicitly ported** to SVR4 systems like ISC and SCO. It uses `Imake`, not Autoconf, and expects GCC 2.7–2.8.
+
 
 ---
 
